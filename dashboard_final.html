@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard — POC</title>
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- Moment + DateRangePicker -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+  <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    /* small scrollbar for long charts container */
+    .scrollable-chart { overflow:auto; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
+    <div class="p-6 border-b">
+      <h2 class="text-2xl font-semibold text-indigo-600">Leadgensys</h2>
+    </div>
+    <nav class="flex-1 px-4 py-6 space-y-2">
+      <a class="flex items-center px-4 py-2 text-gray-700 bg-indigo-50 rounded-lg font-medium" href="#">Dashboard</a>
+      <a class="flex items-center px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100" href="#">Locations</a>
+      <a class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100" href="#">Leads</a>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center border-b">
+      <div class="flex items-center space-x-4">
+        <h1 class="text-xl font-semibold text-gray-800">Dashboard</h1>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="relative">
+          <button id="profileBtn" class="flex items-center bg-gray-100 text-gray-700 px-4 py-2 rounded-lg gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11a4 4 0 10-8 0 4 4 0 008 0zM12 21v-4" /></svg>
+            <span class="text-sm">you</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-y-auto px-6 py-8">
+      <!-- Summary cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div class="flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-green-50"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v4a1 1 0 001 1h3m10 0h3a1 1 0 001-1V7M3 7l9 6 9-6M12 13v8" /></svg></div>
+            <div>
+              <h3 class="text-gray-500 text-sm font-medium">Today's Leads</h3>
+              <p id="todaysLeads" class="text-3xl font-semibold text-green-500 mt-2">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div class="flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-indigo-50"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7h18M3 12h18M3 17h18" /></svg></div>
+            <div>
+              <h3 class="text-gray-500 text-sm font-medium">Total Locations</h3>
+              <p id="totalLocations" class="text-3xl font-semibold text-indigo-600 mt-2">150</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div class="flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-yellow-50"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3" /></svg></div>
+            <div>
+              <h3 class="text-gray-500 text-sm font-medium">Total Leads</h3>
+              <p id="totalLeads" class="text-3xl font-semibold text-yellow-600 mt-2">0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date range -->
+      <div class="mb-6">
+        <label class="block text-sm text-gray-600 mb-2">Date Range</label>
+        <input id="daterange" readonly class="w-64 border border-gray-300 rounded-lg py-2 px-3 bg-white cursor-pointer" />
+      </div>
+
+      <!-- Charts (stacked vertically as per assignment / sketch) -->
+      <div class="space-y-6">
+        <!-- Graph 1: Line Chart -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4">Lead Growth</h2>
+          <div>
+            <canvas id="lineChart" style="width:100%;max-height:350px;"></canvas>
+          </div>
+        </div>
+
+        <!-- Graph 2: Location-wise Horizontal Bar Chart -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4">Location Wise Leads (Sorted)</h2>
+          <div class="scrollable-chart">
+            <canvas id="locationChart" style="width:100%;"></canvas>
+          </div>
+        </div>
+
+        <!-- Graph 3: Articles Horizontal Bar Chart -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4">Articles (22) — Downloads (Sorted)</h2>
+          <div class="scrollable-chart">
+            <canvas id="articleChart" style="width:100%;"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // ---------- Configuration ----------
+    const TOTAL_LOCATIONS = 150;
+    const TOTAL_ARTICLES = 22;
+
+    // Generate location names: site-1.com ... site-150.com
+    const locations = Array.from({length: TOTAL_LOCATIONS}, (_, i) => `site-${i+1}.example.com`);
+    const articles = Array.from({length: TOTAL_ARTICLES}, (_, i) => `Article ${i+1}`);
+
+    // Chart instances
+    let lineChart = null;
+    let locationChart = null;
+    let articleChart = null;
+
+    // Utility: get date array inclusive
+    function getDateRangeArray(start, end) {
+      const arr = [];
+      const curr = moment(start).startOf('day');
+      const last = moment(end).startOf('day');
+      while (curr <= last) {
+        arr.push(curr.format('YYYY-MM-DD'));
+        curr.add(1, 'day');
+      }
+      return arr;
+    }
+
+    // Random integer
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // Generate dummy dataset (random) for the selected date range.
+    // We simulate downloads happening per-location and per-article.
+    function generateDummyData(startDate, endDate) {
+      const dates = getDateRangeArray(startDate, endDate);
+
+      // Prepare per-location totals and per-article totals
+      const locationTotals = Array(TOTAL_LOCATIONS).fill(0);
+      const articleTotals = Array(TOTAL_ARTICLES).fill(0);
+      const dailyTotals = {}; // date -> sum across all locations (for line chart)
+
+      dates.forEach(date => {
+        let daySum = 0;
+        // For each location, random downloads for that date
+        for (let i = 0; i < TOTAL_LOCATIONS; i++) {
+          // Each location has 0..6 downloads that day (random)
+          const downloads = randInt(0, 6);
+          locationTotals[i] += downloads;
+          daySum += downloads;
+        }
+
+        // For articles: generate total downloads across all locations for each article for that date
+        for (let a = 0; a < TOTAL_ARTICLES; a++) {
+          // article downloads 0..12 per day (random)
+          const ad = randInt(0, 12);
+          articleTotals[a] += ad;
+          daySum += ad;
+        }
+
+        dailyTotals[date] = daySum;
+      });
+
+      // Return aggregated structures
+      return {
+        dates,
+        dailyTotals,
+        locationTotals,
+        articleTotals
+      };
+    }
+
+    // Build Line Chart (daily totals)
+    function buildOrUpdateLineChart(ctx, dates, dailyTotals) {
+      const labels = dates.map(d => moment(d).format('DD MMM'));
+      const data = dates.map(d => dailyTotals[d] || 0);
+
+      const cfg = {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Leads',
+            data,
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16,185,129,0.08)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: true }
+          }
+        }
+      };
+
+      if (lineChart) {
+        lineChart.data.labels = cfg.data.labels;
+        lineChart.data.datasets = cfg.data.datasets;
+        lineChart.options = cfg.options;
+        lineChart.update();
+      } else {
+        lineChart = new Chart(ctx, cfg);
+      }
+    }
+
+    // Build Horizontal Bar Chart for Locations (sorted desc)
+    function buildOrUpdateLocationChart(ctx, labels, dataArr) {
+      // sort
+      const pairs = labels.map((lab, i) => ({lab, val: dataArr[i]}));
+      pairs.sort((a,b) => b.val - a.val);
+
+      const sortedLabels = pairs.map(p => p.lab);
+      const sortedData = pairs.map(p => p.val);
+
+      // Adjust canvas height to fit all labels nicely: ~18px per bar (min 300)
+      const canvas = ctx.canvas;
+      const height = Math.max(300, sortedLabels.length * 18);
+      canvas.height = height;
+
+      const cfg = {
+        type: 'bar',
+        data: {
+          labels: sortedLabels,
+          datasets: [{
+            label: 'Downloads',
+            data: sortedData,
+            backgroundColor: '#6366F1',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { beginAtZero: true },
+            y: { ticks: { autoSkip: false } }
+          }
+        }
+      };
+
+      if (locationChart) {
+        locationChart.destroy();
+        locationChart = null;
+      }
+      locationChart = new Chart(ctx, cfg);
+    }
+
+    // Build Horizontal Bar Chart for Articles (sorted desc)
+    function buildOrUpdateArticleChart(ctx, labels, dataArr) {
+      const pairs = labels.map((lab, i) => ({lab, val: dataArr[i]}));
+      pairs.sort((a,b) => b.val - a.val);
+
+      const sortedLabels = pairs.map(p => p.lab);
+      const sortedData = pairs.map(p => p.val);
+
+      const canvas = ctx.canvas;
+      const height = Math.max(240, sortedLabels.length * 22);
+      canvas.height = height;
+
+      const cfg = {
+        type: 'bar',
+        data: {
+          labels: sortedLabels,
+          datasets: [{
+            label: 'Downloads',
+            data: sortedData,
+            backgroundColor: '#F59E0B',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { beginAtZero: true },
+            y: { ticks: { autoSkip: false } }
+          }
+        }
+      };
+
+      if (articleChart) {
+        articleChart.destroy();
+        articleChart = null;
+      }
+      articleChart = new Chart(ctx, cfg);
+    }
+
+    // Update all UI & charts for a given start/end
+    function updateAll(start, end) {
+      // Generate dummy data for date range
+      const dataset = generateDummyData(start, end);
+      const { dates, dailyTotals, locationTotals, articleTotals } = dataset;
+
+      // Update summary numbers
+      // Today's leads = sum of latest date totals (if included)
+      const todayKey = moment().format('YYYY-MM-DD');
+      const todaysLeadsNumber = dailyTotals[todayKey] || 0;
+      $('#todaysLeads').text(todaysLeadsNumber);
+
+      // Total locations (static)
+      $('#totalLocations').text(TOTAL_LOCATIONS);
+
+      // Total leads = sum of all downloads in range
+      const totalLeads = Object.values(dailyTotals).reduce((s, v) => s + v, 0);
+      $('#totalLeads').text(totalLeads);
+
+      // Build charts
+      const lineCtx = document.getElementById('lineChart').getContext('2d');
+      // Ensure canvas height for line chart (comfortable)
+      document.getElementById('lineChart').height = 280;
+      buildOrUpdateLineChart(lineCtx, dates, dailyTotals);
+
+      const locCtx = document.getElementById('locationChart').getContext('2d');
+      buildOrUpdateLocationChart(locCtx, locations, locationTotals);
+
+      const artCtx = document.getElementById('articleChart').getContext('2d');
+      buildOrUpdateArticleChart(artCtx, articles, articleTotals);
+    }
+
+    // Initialize date range picker and default to start of current month -> today
+    $(function() {
+      const startOfMonth = moment().startOf('month');
+      const today = moment();
+
+      function cb(start, end) {
+        $('#daterange').val(start.format('MMM D, YYYY') + ' - ' + end.format('MMM D, YYYY'));
+        updateAll(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+      }
+
+      $('#daterange').daterangepicker({
+        startDate: startOfMonth,
+        endDate: today,
+        opens: 'left',
+        ranges: {
+           'Today': [moment(), moment()],
+           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+           'This Month': [moment().startOf('month'), moment().endOf('month')],
+           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        }
+      }, cb);
+
+      // Initial render
+      cb(startOfMonth, today);
+    });
+
+    // Close dropdowns or other UI interactions (not required, but placeholder)
+    document.addEventListener('click', (e) => {
+      // Example: close profile menu if any (not implemented here)
+    });
+  </script>
+</body>
+</html>
