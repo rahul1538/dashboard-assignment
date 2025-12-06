@@ -246,29 +246,30 @@
     // Build Horizontal Bar Chart for Locations (sorted desc)
 // ---------------- NEW UPDATED LOCATION CHART WITH LOAD MORE ----------------
 
+// ---------------- UPDATED LOCATION CHART WITH LOAD MORE + FIXED HEIGHT ----------------
+
 let locationOffset = 0;
 const BATCH_SIZE = 20;
 let sortedLocations = [];
 
 function buildOrUpdateLocationChart(ctx, labels, dataArr) {
   
-  // Sort location data only once
   sortedLocations = labels.map((lab, i) => ({ lab, val: dataArr[i] }))
                           .sort((a, b) => b.val - a.val);
 
-  locationOffset = 0; // reset for every new date range
+  locationOffset = 0;  
   renderLocationChart(ctx);
 }
 
 function renderLocationChart(ctx) {
+
   const slice = sortedLocations.slice(locationOffset, locationOffset + BATCH_SIZE);
 
   const displayLabels = slice.map(p => p.lab);
   const displayValues = slice.map(p => p.val);
 
-  // FIXED HEIGHT
   const canvas = ctx.canvas;
-  canvas.height = 500;
+  canvas.style.height = "500px"; // fixed size
 
   if (locationChart) locationChart.destroy();
 
@@ -300,19 +301,28 @@ function renderLocationChart(ctx) {
   updateLoadMoreButton();
 }
 
-function updateLoadMoreButton() {
-  const remaining = sortedLocations.length - (locationOffset + BATCH_SIZE);
-  const container = document.getElementById("locationLoadMore");
-
-  container.innerHTML = remaining > 0
-    ? `<button onclick="loadMoreLocations()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg mt-3">Load More (${remaining} left)</button>`
-    : `<span class="text-gray-400 text-sm block mt-3">All locations loaded ✔</span>`;
-}
-
 function loadMoreLocations() {
   locationOffset += BATCH_SIZE;
+
+  if (locationOffset >= sortedLocations.length) {
+    locationOffset = sortedLocations.length - BATCH_SIZE;
+  }
+
   renderLocationChart(document.getElementById("locationChart").getContext("2d"));
 }
+
+function updateLoadMoreButton() {
+  const remaining = sortedLocations.length - (locationOffset + BATCH_SIZE);
+
+  document.getElementById("locationLoadMore").innerHTML =
+    remaining > 0
+      ? `<button onclick="loadMoreLocations()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg mt-3">
+          Load More (${remaining} left)
+         </button>`
+      : `<span class="text-gray-400 text-sm block mt-3">End of Results ✔</span>`;
+}
+
+
 
 
     // Build Horizontal Bar Chart for Articles (sorted desc)
