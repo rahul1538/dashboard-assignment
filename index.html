@@ -92,9 +92,11 @@
       </div>
 
       <!-- Date range -->
-      <div class="mb-6">
-        <label class="block text-sm text-gray-600 mb-2">Date Range</label>
-        <input id="daterange" readonly class="w-64 border border-gray-300 rounded-lg py-2 px-3 bg-white cursor-pointer" />
+      <div class="mb-6 flex justify-end">
+       <div>
+          <label class="block text-sm text-gray-600 mb-2">Date Range</label>
+          <input id="daterange" readonly class="w-64 border border-gray-300 rounded-lg py-2 px-3 bg-white cursor-pointer" />
+       </div>
       </div>
 
       <!-- Charts (stacked vertically as per assignment / sketch) -->
@@ -113,6 +115,7 @@
           <div class="scrollable-chart">
             <canvas id="locationChart" style="width:100%;"></canvas>
           </div>
+            <div id="locationLoadMore" class="text-center mt-4"></div>
         </div>
 
         <!-- Graph 3: Articles Horizontal Bar Chart -->
@@ -241,48 +244,76 @@
     }
 
     // Build Horizontal Bar Chart for Locations (sorted desc)
-    function buildOrUpdateLocationChart(ctx, labels, dataArr) {
-      // sort
-      const pairs = labels.map((lab, i) => ({lab, val: dataArr[i]}));
-      pairs.sort((a,b) => b.val - a.val);
+// ---------------- NEW UPDATED LOCATION CHART WITH LOAD MORE ----------------
 
-      const sortedLabels = pairs.map(p => p.lab);
-      const sortedData = pairs.map(p => p.val);
+let locationOffset = 0;
+const BATCH_SIZE = 20;
+let sortedLocations = [];
 
-      // Adjust canvas height to fit all labels nicely: ~18px per bar (min 300)
-      const canvas = ctx.canvas;
-      const height = Math.max(300, sortedLabels.length * 18);
-      canvas.height = height;
+function buildOrUpdateLocationChart(ctx, labels, dataArr) {
+  
+  // Sort location data only once
+  sortedLocations = labels.map((lab, i) => ({ lab, val: dataArr[i] }))
+                          .sort((a, b) => b.val - a.val);
 
-      const cfg = {
-        type: 'bar',
-        data: {
-          labels: sortedLabels,
-          datasets: [{
-            label: 'Downloads',
-            data: sortedData,
-            backgroundColor: '#6366F1',
-            borderRadius: 6
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          plugins: { legend: { display: false } },
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { beginAtZero: true },
-            y: { ticks: { autoSkip: false } }
-          }
+  locationOffset = 0; // reset for every new date range
+  renderLocationChart(ctx);
+}
+
+function renderLocationChart(ctx) {
+  const slice = sortedLocations.slice(locationOffset, locationOffset + BATCH_SIZE);
+
+  const displayLabels = slice.map(p => p.lab);
+  const displayValues = slice.map(p => p.val);
+
+  // FIXED HEIGHT
+  const canvas = ctx.canvas;
+  canvas.height = 500;
+
+  if (locationChart) locationChart.destroy();
+
+  locationChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: displayLabels,
+      datasets: [
+        {
+          label: "Downloads",
+          data: displayValues,
+          backgroundColor: "#6366F1",
+          borderRadius: 6
         }
-      };
-
-      if (locationChart) {
-        locationChart.destroy();
-        locationChart = null;
+      ]
+    },
+    options: {
+      indexAxis: "y",
+      plugins: { legend: { display: false } },
+      maintainAspectRatio: false,
+      responsive: true,
+      scales: {
+        x: { beginAtZero: true },
+        y: { ticks: { autoSkip: false } }
       }
-      locationChart = new Chart(ctx, cfg);
     }
+  });
+
+  updateLoadMoreButton();
+}
+
+function updateLoadMoreButton() {
+  const remaining = sortedLocations.length - (locationOffset + BATCH_SIZE);
+  const container = document.getElementById("locationLoadMore");
+
+  container.innerHTML = remaining > 0
+    ? `<button onclick="loadMoreLocations()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg mt-3">Load More (${remaining} left)</button>`
+    : `<span class="text-gray-400 text-sm block mt-3">All locations loaded ✔</span>`;
+}
+
+function loadMoreLocations() {
+  locationOffset += BATCH_SIZE;
+  renderLocationChart(document.getElementById("locationChart").getContext("2d"));
+}
+
 
     // Build Horizontal Bar Chart for Articles (sorted desc)
     function buildOrUpdateArticleChart(ctx, labels, dataArr) {
